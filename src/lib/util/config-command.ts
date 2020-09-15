@@ -1,0 +1,51 @@
+import Command from "@oclif/command";
+import * as mkdirp from "mkdirp";
+import { cli } from "cli-ux";
+import inquirer = require("inquirer");
+
+import {
+    Config,
+    defaultConfig,
+    loadConfigOrDefault,
+    saveConfig,
+} from "../config";
+
+export abstract class ConfigCommand extends Command {
+    app: Config = defaultConfig(this);
+
+    get isInitalized(): boolean {
+        return this.app.isInitialized && Boolean(this.app.googleApiKey);
+    }
+
+    async run() {
+        this.app = await loadConfigOrDefault(this);
+        await this.doWork();
+        this.exit(0);
+    }
+
+    abstract doWork(): PromiseLike<any>;
+
+    async save() {
+        cli.action.start("Saving config!");
+        await saveConfig(this, this.app);
+        cli.action.stop();
+    }
+
+    async ensureConfigDirectories() {
+        await Promise.all([
+            mkdirp(this.app.cacheDir),
+            mkdirp(this.app.dataDir),
+        ]);
+    }
+
+    async confirm(message: string, defaultValue = false): Promise<boolean> {
+        const { confirm } = await inquirer.prompt({
+            message,
+            default: defaultValue,
+            type: "confirm",
+            name: "confirm",
+        });
+
+        return confirm;
+    }
+}

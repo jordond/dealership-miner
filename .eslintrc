@@ -1,0 +1,15 @@
+{
+    "extends": ["oclif", "oclif-typescript"],
+    "rules": {
+        "quotes": [2, "double", { "avoidEscape": true }],
+        "object-curly-spacing": [2, "always"],
+        "semi": "off",
+        "indent": "off",
+        "@typescript-eslint/no-use-before-define": "off",
+        "arrow-parens": "off",
+        "new-cap": "off",
+        "no-negated-condition": "off",
+        "unicorn/number-literal-case": "off",
+        "space-in-parens": "off"
+    }
+}
