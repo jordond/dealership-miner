@@ -1,8 +1,9 @@
 import { pathExists } from "fs-extra";
 import pull = require("pull-stream");
 
-import { Regions, ALL_REGIONS, mapToRegion } from "../model/region";
+import { mapToRegion } from "../model/region";
 import { City } from "../model/city";
+import { CityDataset } from "../geonames/city-data";
 import {
     readGeonames,
     GeonamesItem,
@@ -11,21 +12,13 @@ import {
 
 export const DEFAULT_POPUALTION_MIN = 1;
 
-export interface ParseCitiesConfig {
-    datasetPath: string;
-    regions: Regions[];
-}
-
-export async function parseCities({
-    datasetPath,
-    regions = ALL_REGIONS,
-}: ParseCitiesConfig): Promise<City[]> {
+export async function parseCities(datasetPath: string): Promise<CityDataset> {
     const datasetExists = await pathExists(datasetPath);
     if (!datasetExists) {
         throw new Error(`Dataset does not exist at ${datasetPath}`);
     }
 
-    const filterCity = filterCityFunc(regions);
+    const filterCity = filterCityFunc();
 
     return new Promise((resolve, reject) => {
         pull(
@@ -38,28 +31,24 @@ export async function parseCities({
                     return reject(error);
                 }
 
-                resolve(results as City[]);
+                const mapped = mapToCityDataset(results as City[]);
+                resolve(mapped);
             })
         );
     });
 }
 
-function filterCityFunc(regions: Regions[]) {
+function filterCityFunc() {
     return (item: GeonamesItem): boolean => {
-        const region = mapToRegion(item.adminCode);
-        return (
-            item.featureClass === FEATURE_CLASS_CITY &&
-            regions.includes(region as any)
-        );
+        return item.featureClass === FEATURE_CLASS_CITY;
     };
 }
 
 function parseToCity(item: GeonamesItem): City | undefined {
     const region = mapToRegion(item.adminCode);
-    if (!region) return undefined;
 
     return {
-        region,
+        region: region ?? (item.adminCode as any),
         id: item.id,
         name: item.name,
         population: item.population,
@@ -69,4 +58,14 @@ function parseToCity(item: GeonamesItem): City | undefined {
             timezone: item.timezone,
         },
     };
+}
+
+function mapToCityDataset(results: City[]): CityDataset {
+    return results.reduce((dataset, city) => {
+        const array = dataset[city.region] ?? [];
+        return {
+            ...dataset,
+            [city.region]: [...array, city],
+        };
+    }, {} as CityDataset);
 }

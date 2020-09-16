@@ -2,7 +2,7 @@ import { readJSON, outputJson } from "fs-extra";
 import { join } from "path";
 import Command from "@oclif/command";
 
-import { Country, Regions, DEFAULT_COUNTRY, ALL_REGIONS } from "./model/region";
+import { Country, DEFAULT_COUNTRY } from "./model/region";
 
 const CONFIG_FILE = "config.json";
 
@@ -11,8 +11,8 @@ export interface Config {
     cacheDir: string;
     dataDir: string;
     country: Country;
-    regions: Regions[];
     googleApiKey: string | undefined;
+    previousPopulation: number | undefined;
 }
 
 export function defaultConfig(command: Command): Config {
@@ -21,8 +21,8 @@ export function defaultConfig(command: Command): Config {
         cacheDir: command.config.cacheDir,
         dataDir: command.config.dataDir,
         country: DEFAULT_COUNTRY,
-        regions: ALL_REGIONS,
         googleApiKey: undefined,
+        previousPopulation: undefined,
     };
 }
 

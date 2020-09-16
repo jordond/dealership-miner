@@ -1,7 +1,7 @@
 import Command from "@oclif/command";
 import * as mkdirp from "mkdirp";
 import { cli } from "cli-ux";
-import inquirer = require("inquirer");
+import * as inquirer from "inquirer";
 
 import {
     Config,
@@ -25,10 +25,10 @@ export abstract class ConfigCommand extends Command {
 
     abstract doWork(): PromiseLike<any>;
 
-    async save() {
-        cli.action.start("Saving config!");
+    async save(log = true) {
+        if (log) cli.action.start("Saving config!");
         await saveConfig(this, this.app);
-        cli.action.stop();
+        if (log) cli.action.stop();
     }
 
     async ensureConfigDirectories() {

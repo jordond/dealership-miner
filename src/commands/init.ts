@@ -1,10 +1,10 @@
 import { flags } from "@oclif/command";
 import cli from "cli-ux";
-import { pathExists } from "fs-extra";
 import { resolve } from "path";
 
 import { ConfigCommand } from "../lib/util/config-command";
-import { fetchDataset, createDatasetPath } from "../lib/util/dataset";
+import { fetchDataset } from "../lib/util/dataset";
+import { cityDataExists } from "../lib/geonames/city-data";
 
 export default class Init extends ConfigCommand {
     static description = "Initial config of the dataminer";
@@ -13,10 +13,16 @@ export default class Init extends ConfigCommand {
         "$ dealership-miner init",
         "$ dealership-miner init --data /home/foo/data",
         "$ dealership-miner init --force",
+        "$ dealership-miner init --pretty -c /tmp/foo",
     ];
 
     static flags = {
         help: flags.help({ char: "h" }),
+        pretty: flags.boolean({
+            description:
+                "Output human readable city data. NOTE: This will increase filesize.",
+            default: false,
+        }),
         data: flags.string({
             char: "d",
             description: "Directory to save required files.",
@@ -33,7 +39,7 @@ export default class Init extends ConfigCommand {
     };
 
     async doWork() {
-        const { flags } = this.parse(Init);
+        const { force, pretty } = this.parse(Init).flags;
 
         // Get and create the folders
         this.app.cacheDir = await this.getCacheDir();
@@ -41,16 +47,15 @@ export default class Init extends ConfigCommand {
         await this.ensureConfigDirectories();
 
         // Check for existing dataset
-        const datasetPath = createDatasetPath(this);
-        const datasetExists = await pathExists(datasetPath);
-        if (flags.force || !datasetExists) {
-            await fetchDataset(this, datasetPath);
-        } else if (!flags.force && datasetExists) {
+        const datasetExists = await cityDataExists(this);
+        if (force || !datasetExists) {
+            await fetchDataset(this, { prettyPrintData: pretty });
+        } else if (datasetExists) {
             this.log(
                 `Dataset for ${this.app.country} already exists, confirm or pass '--force'.`
             );
             const confirm = await this.confirm("Update it?");
-            if (confirm) await fetchDataset(this, datasetPath);
+            if (confirm) await fetchDataset(this, { prettyPrintData: pretty });
         }
 
         // Get the Google API key
@@ -68,7 +73,7 @@ export default class Init extends ConfigCommand {
         this.app.isInitialized = true;
         await this.save();
 
-        this.log("Finished the setup, you can run");
+        this.log("Finished the setup, you are now good to go!");
     }
 
     private async getCacheDir() {

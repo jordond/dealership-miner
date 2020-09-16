@@ -7,19 +7,23 @@ import { ConfigCommand } from "./config-command";
 import { downloadData } from "../geonames/download";
 import { unzipDataset } from "../geonames/unzip";
 import { parseCities } from "../geonames/parse-geonames";
-import { saveCityData, getCityDataPath } from "../geonames/city-data";
-import { City } from "../model/city";
+import {
+    saveCityData,
+    getCityDataPath,
+    countCities,
+    CityDataset,
+} from "../geonames/city-data";
 
 export const DATASET_NAME = "-dataset";
 
 export function createDatasetPath(command: ConfigCommand) {
-    const datasetName = `${command.app.country}${DATASET_NAME}.txt`;
+    const datasetName = `${command.app.country}${DATASET_NAME}.json`;
     return join(command.app.cacheDir, datasetName);
 }
 
 export async function fetchDataset(
     command: ConfigCommand,
-    datasetPath: string = createDatasetPath(command)
+    { datasetPath = createDatasetPath(command), prettyPrintData = false } = {}
 ) {
     // Download the dataset
     const downloadName = `${command.app.country}${DATASET_NAME}.zip`;
@@ -44,12 +48,9 @@ export async function fetchDataset(
         {
             title: "Parsing cities",
             task: async (context) => {
-                const parsed = await parseCities({
-                    datasetPath,
-                    regions: command.app.regions,
-                });
-
-                if (parsed.length === 0) {
+                const parsed = await parseCities(datasetPath);
+                const cityCount = countCities(parsed);
+                if (cityCount === 0) {
                     throw new Error("Was unable to parse any cities!");
                 }
 
@@ -58,7 +59,12 @@ export async function fetchDataset(
         },
         {
             title: "Save city data",
-            task: (context) => saveCityData(command, context.parsed as City[]),
+            task: (context) =>
+                saveCityData(
+                    command,
+                    context.parsed as CityDataset,
+                    prettyPrintData
+                ),
         },
         {
             title: "Clean up",
@@ -68,13 +74,13 @@ export async function fetchDataset(
     ]);
 
     const result = await tasks.run({});
-    const cityData = result.parsed as City[];
-    if (cityData.length === 0) {
+    const cityCount = countCities(result.parsed);
+    if (cityCount === 0) {
         command.error("Was unable to parse any cities!");
     }
 
     command.log(
-        `Parsed ${cityData.length} cities from ${command.app.country}${DATASET_NAME}.txt`
+        `Parsed ${cityCount} cities from ${command.app.country}${DATASET_NAME}.txt`
     );
     command.log(`Saved data to ${getCityDataPath(command)}`);
 }
