@@ -2,6 +2,8 @@ import * as file from "pull-file";
 import * as pull from "pull-stream";
 import * as bits from "pull-tobits";
 
+export const FEATURE_CODE_CITY = "P";
+
 export interface GeonamesItem {
     id: number;
     name: string;

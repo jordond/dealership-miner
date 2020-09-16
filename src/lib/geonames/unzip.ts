@@ -1,7 +1,7 @@
 import * as unzipper from "unzipper";
-
-import { Country } from "./model/region";
 import { createReadStream, createWriteStream } from "fs-extra";
+
+import { Country } from "../model/region";
 
 export async function unzipDataset(
     zipPath: string,

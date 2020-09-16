@@ -4,11 +4,11 @@ import { remove } from "fs-extra";
 import * as ListR from "listr";
 
 import { ConfigCommand } from "./config-command";
-import { downloadData } from "../download";
-import { unzipDataset } from "../unzip";
+import { downloadData } from "../geonames/download";
+import { unzipDataset } from "../geonames/unzip";
 import { parseCities } from "../geonames/parse-geonames";
+import { saveCityData, getCityDataPath } from "../geonames/city-data";
 import { City } from "../model/city";
-import { saveCityData, getCityDataPath } from "../city-data";
 
 export const DATASET_NAME = "-dataset";
 
@@ -48,6 +48,11 @@ export async function fetchDataset(
                     datasetPath,
                     regions: command.app.regions,
                 });
+
+                if (parsed.length === 0) {
+                    throw new Error("Was unable to parse any cities!");
+                }
+
                 context.parsed = parsed;
             },
         },

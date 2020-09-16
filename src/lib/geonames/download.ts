@@ -1,4 +1,4 @@
-import { Country } from "./model/region";
+import { Country } from "../model/region";
 import { parse } from "url";
 import { createWriteStream } from "fs";
 import { get } from "https";

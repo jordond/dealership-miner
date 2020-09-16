@@ -1,10 +1,10 @@
 import { join } from "path";
-
-import { ConfigCommand } from "./util/config-command";
 import { outputJson, readJson } from "fs-extra";
-import { City } from "./model/city";
 
-const CITY_DATA_FILE = "city-data.json";
+import { ConfigCommand } from "../util/config-command";
+import { City } from "../model/city";
+
+const CITY_DATA_FILE = "geonames-city-data.json";
 
 export function getCityDataPath(command: ConfigCommand) {
     return join(command.app.dataDir, CITY_DATA_FILE);

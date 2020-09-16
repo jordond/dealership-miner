@@ -1,11 +1,7 @@
 import { Regions } from "./region";
 
-interface Region {
-    shortCode: string;
-    cities: City[];
-}
-
 export interface City {
+    id: number;
     name: string;
     region: Regions;
     population: number;

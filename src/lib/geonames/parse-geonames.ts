@@ -60,6 +60,7 @@ function parseToCity(item: GeonamesItem): City | undefined {
 
     return {
         region,
+        id: item.id,
         name: item.name,
         population: item.population,
         location: {
