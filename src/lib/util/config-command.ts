@@ -10,6 +10,8 @@ import {
     saveConfig,
 } from "../config";
 
+export const DEFAULT_WORKERS = 6;
+
 export abstract class ConfigCommand extends Command {
     app: Config = defaultConfig(this);
 

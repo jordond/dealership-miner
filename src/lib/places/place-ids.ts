@@ -7,8 +7,8 @@ import * as ListR from "listr";
 
 import { DealershipDataPoint } from "../model/dealership-dataset";
 import { City } from "../model/city";
-import { ConfigCommand } from "../util/config-command";
-import { delay } from "../util/misc";
+import { ConfigCommand, DEFAULT_WORKERS } from "../util/config-command";
+import { delay, chunkArray } from "../util/misc";
 
 /**
  * With:
@@ -39,50 +39,60 @@ export async function fetchPlaceIds(
     context: ConfigCommand,
     cityData: City[],
     dealershipData: DealershipDataPoint,
-    { maxErrors = MAX_ERROR_COUNT_TO_ABORT, force = false } = {}
+    {
+        maxErrors = MAX_ERROR_COUNT_TO_ABORT,
+        force = false,
+        workers = DEFAULT_WORKERS,
+    } = {}
 ): Promise<DealershipDataPoint> {
     const placesClient = new Client();
 
-    const citiesMeetPopulation = cityData.filter(
-        (city) => city.population >= dealershipData.minimumPopulation
-    );
-    const cities = citiesMeetPopulation.filter((city) => {
-        if (force) return true;
+    const cities = cityData
+        .filter((city) => city.population >= dealershipData.minimumPopulation)
+        .filter((city) => {
+            if (force) return true;
 
-        const existing = dealershipData.cityIds.find((id) => id === city.id);
-        return existing === undefined;
-    });
+            const existing = dealershipData.cityIds.find(
+                (id) => id === city.id
+            );
+            return existing === undefined;
+        });
 
     context.log(
-        `There are ${citiesMeetPopulation.length} cities that have a population greater than ${dealershipData.minimumPopulation}`
+        `There are ${cities.length} cities that have a population greater than ${dealershipData.minimumPopulation}`
     );
-    const sizeDifference = citiesMeetPopulation.length - cities.length;
-    if (sizeDifference) {
-        context.log(
-            `Skipping ${sizeDifference} cities because data exists, use '--refresh' to bypass.`
-        );
-    }
     context.log("This might take awhile...");
 
-    const tasks: ListR.ListrTask[] = cities.map((city) => ({
-        title: city.name,
-        skip: (ctx) => ctx.errorCount >= maxErrors,
-        task: async (ctx) => {
-            try {
-                const results = await fetchPlaceIdsFor(
-                    context,
-                    placesClient,
-                    city
+    // Process 5 at a time
+    const cityChunks: ListR.ListrTask[] = chunkArray(cities, workers).map(
+        (chunk, index) => ({
+            title: `City group ${index + 1}`,
+            task: () => {
+                return new ListR(
+                    chunk.map((city) => ({
+                        title: city.name,
+                        skip: (ctx) => ctx.errorCount >= maxErrors,
+                        task: async (ctx) => {
+                            try {
+                                const results = await fetchPlaceIdsFor(
+                                    context,
+                                    placesClient,
+                                    city
+                                );
+                                ctx.results = [...ctx.results, results];
+                            } catch (error) {
+                                ctx.errorCount += 1;
+                                throw error;
+                            }
+                        },
+                    })),
+                    { concurrent: true, exitOnError: false }
                 );
-                ctx.results = [...ctx.results, results];
-            } catch (error) {
-                ctx.errorCount += 1;
-                throw error;
-            }
-        },
-    }));
+            },
+        })
+    );
 
-    const listr = new ListR(tasks);
+    const listr = new ListR(cityChunks);
     const { errorCount, results } = await listr.run({
         errorCount: 0,
         results: [],
@@ -106,7 +116,7 @@ export async function fetchPlaceIds(
             ...new Set([...dealershipData.cityIds, ...cities.map((x) => x.id)]),
         ],
         dealershipIds: [
-            ...new Set([...dealershipData.dealershipIds, ...results]),
+            ...new Set([...dealershipData.dealershipIds, ...results].flat()),
         ],
     };
 }

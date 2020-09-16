@@ -10,6 +10,7 @@
         "new-cap": "off",
         "no-negated-condition": "off",
         "unicorn/number-literal-case": "off",
-        "space-in-parens": "off"
+        "space-in-parens": "off",
+        "no-mixed-operators": "off"
     }
 }

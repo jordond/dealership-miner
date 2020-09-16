@@ -28,6 +28,10 @@ export default class Fetch extends ConfigCommand {
             description: "Minimum population required for city",
             default: undefined,
         }),
+        workers: flags.integer({
+            char: "w",
+            description: "How many concurrent workers to use.",
+        }),
         force: flags.boolean({
             char: "f",
             description: "Delete all previous data and start fresh",
@@ -116,13 +120,15 @@ export default class Fetch extends ConfigCommand {
         regionData: DealershipDataPoint,
         force = false
     ) {
+        const workers = this.parse(Fetch).flags.workers;
+
         // Fetch place ids and save
         const geonamesCities = cityData[selectedRegion];
         const citiesWithIds = await fetchPlaceIds(
             this,
             geonamesCities,
             regionData,
-            { force }
+            { force, workers }
         );
         await saveDealershipDataPoint(this, selectedRegion, citiesWithIds);
 
