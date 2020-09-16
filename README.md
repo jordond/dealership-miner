@@ -33,7 +33,8 @@ USAGE
 * [`dealership-miner fetch`](#dealership-miner-fetch)
 * [`dealership-miner help [COMMAND]`](#dealership-miner-help-command)
 * [`dealership-miner init`](#dealership-miner-init)
-* [`dealership-miner update`](#dealership-miner-update)
+* [`dealership-miner update [CHANNEL]`](#dealership-miner-update-channel)
+* [`dealership-miner update-dataset`](#dealership-miner-update-dataset)
 
 ## `dealership-miner commands`
 
@@ -117,17 +118,28 @@ EXAMPLES
 
 _See code: [src/commands/init.ts](https://github.com/jordond/dealership-miner/blob/v1.0.0/src/commands/init.ts)_
 
-## `dealership-miner update`
+## `dealership-miner update [CHANNEL]`
+
+update the dealership-miner CLI
+
+```
+USAGE
+  $ dealership-miner update [CHANNEL]
+```
+
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v1.3.10/src/commands/update.ts)_
+
+## `dealership-miner update-dataset`
 
 Force an update of the dataset
 
 ```
 USAGE
-  $ dealership-miner update
+  $ dealership-miner update-dataset
 
 EXAMPLE
   $ dealership-miner update
 ```
 
-_See code: [src/commands/update.ts](https://github.com/jordond/dealership-miner/blob/v1.0.0/src/commands/update.ts)_
+_See code: [src/commands/update-dataset.ts](https://github.com/jordond/dealership-miner/blob/v1.0.0/src/commands/update-dataset.ts)_
 <!-- commandsstop -->
