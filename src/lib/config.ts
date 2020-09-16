@@ -30,7 +30,6 @@ export async function loadConfigOrDefault(command: Command): Promise<Config> {
     try {
         const configPath = join(command.config.configDir, CONFIG_FILE);
         const config = (await readJSON(configPath)) as Config;
-        config.isInitialized = true;
         return config;
     } catch (error) {
         return defaultConfig(command);

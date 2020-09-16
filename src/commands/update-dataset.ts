@@ -1,7 +1,7 @@
 import { ConfigCommand } from "../lib/util/config-command";
 import { fetchDataset } from "../lib/util/dataset";
 
-export default class Update extends ConfigCommand {
+export default class UpdateDataset extends ConfigCommand {
     static description = "Force an update of the dataset";
 
     static examples = ["$ dealership-miner update"];

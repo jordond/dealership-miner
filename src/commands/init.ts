@@ -65,6 +65,7 @@ export default class Init extends ConfigCommand {
         }
 
         // Save config
+        this.app.isInitialized = true;
         await this.save();
 
         this.log("Finished the setup, you can run");
