@@ -10,25 +10,6 @@ export async function generateXlsReport(
     data: DealershipDataset,
     outputPath: string
 ): Promise<string> {
-    const dealerships = Object.values(data)
-        .map((datapoint) =>
-            datapoint.dealerships.sort((left, right) =>
-                left.city.localeCompare(right.city)
-            )
-        )
-        .flat()
-        .sort((left, right) => left.region.localeCompare(right.region))
-        .map((dealership) => ({
-            region: dealership.region,
-            city: dealership.city,
-            name: dealership.name,
-            address: dealership.address,
-            postal: dealership.postal,
-            phone: dealership.phone,
-            website: dealership.website,
-            url: dealership.url,
-        }));
-
     const mappedData: XLSX.WorkSheet = Object.keys(data)
         .sort()
         .reduce((dataset, region) => {
@@ -39,7 +20,15 @@ export async function generateXlsReport(
             return {
                 ...dataset,
                 [regionAbrevToName(region)]: XLSX.utils.json_to_sheet(
-                    dealerships
+                    dealerships.map((dealership) => ({
+                        city: dealership.city,
+                        name: dealership.name,
+                        address: dealership.address,
+                        postal: dealership.postal,
+                        phone: dealership.phone,
+                        website: dealership.website,
+                        url: dealership.url,
+                    }))
                 ),
             };
         }, {});

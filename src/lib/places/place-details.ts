@@ -8,6 +8,8 @@ import * as ListR from "listr";
 import { Dealership, DealershipDataPoint } from "../model/dealership-dataset";
 import { ConfigCommand, DEFAULT_WORKERS } from "../util/config-command";
 import { chunkArray, uniqueArray } from "../util/misc";
+import { parseAddressComponents, ADMIN_AREA_1 } from "./util";
+import Command from "@oclif/command";
 
 const API_DETAIL_FIELDS = [
     "name",
@@ -70,7 +72,12 @@ export async function fetchDealershipDetails(
                                 placeId,
                                 region
                             );
-                            ctx.results = [...ctx.results, results];
+
+                            if (results)
+                                ctx.results = [...ctx.results, results];
+                            else {
+                                ctx.skipped = ctx.skipped.push(placeId);
+                            }
                         },
                     })),
                     { concurrent: true, exitOnError: false }
@@ -91,8 +98,12 @@ export async function fetchDealershipDetails(
               );
 
     const listr = new ListR(listrChunks);
-    const { results }: { results: Dealership[] } = await listr.run({
+    const {
+        results,
+        skipped,
+    }: { results: Dealership[]; skipped: string[] } = await listr.run({
         results: [],
+        skipped: [],
     });
 
     if (!results) {
@@ -103,8 +114,15 @@ export async function fetchDealershipDetails(
         `Fetched details for ${results.length} dealerships for ${region}.`
     );
 
+    if (skipped.length > 0) {
+        context.log(`Skipped ${skipped.length} invalid places`);
+    }
+
     return {
         ...dealershipData,
+        dealershipIds: dealershipData.dealershipIds.filter(
+            (id) => !skipped.includes(id)
+        ),
         dealerships: uniqueArray(
             [...dealershipData.dealerships, results]
                 .flat()
@@ -118,7 +136,7 @@ async function fetchPlaceDetails(
     client: Client,
     placeId: string,
     region: string
-): Promise<Dealership> {
+): Promise<Dealership | undefined> {
     const key = context.apiKey;
     const request: PlaceDetailsRequest = {
         params: {
@@ -132,38 +150,27 @@ async function fetchPlaceDetails(
     return mapPlaceToDealership(placeId, region, details.result);
 }
 
-type AddressComponentMap = {
-    [type: string]: { long: string; short: string };
-};
-
 function mapPlaceToDealership(
     placeId: string,
     region: string,
     details: Place
-): Dealership {
-    const componentMap: AddressComponentMap = details.address_components!.reduce(
-        (prev, value) => ({
-            ...prev,
-            [value.types[0] as string]: {
-                long: value.long_name,
-                short: value.short_name,
-            },
-        }),
-        {}
-    );
+): Dealership | undefined {
+    const map = parseAddressComponents(details.address_components!);
 
-    const long = (key: string) =>
-        componentMap[key] ? componentMap[key].long || "" : "";
+    const adminArea1 = map.short(ADMIN_AREA_1);
+    if (region !== adminArea1) {
+        // return undefined;
+    }
 
     return {
         name: details.name as string,
         address: details.formatted_address as string,
-        postal: long("postal_code"),
+        postal: map.long("postal_code", "m/a"),
         phone: details.formatted_phone_number as string,
         website: details.website as string,
         url: details.url as string,
-        city: long("locality"),
-        region,
+        city: map.long("locality", "n/a"),
+        region: adminArea1,
         placeId,
     };
 }

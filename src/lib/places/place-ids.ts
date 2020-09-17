@@ -2,6 +2,7 @@ import {
     Client,
     TextSearchRequest,
     PlaceType1,
+    PlacesNearbyRequest,
 } from "@googlemaps/google-maps-services-js";
 import * as ListR from "listr";
 
@@ -142,11 +143,14 @@ async function fetchPlaceIdsFor(
 ): Promise<string[]> {
     const key = context.apiKey;
 
-    const request: TextSearchRequest = {
+    const request: PlacesNearbyRequest = {
         params: {
             key,
-            query: encodeURIComponent(`${city.name} ${city.region}`),
-            region: Country.USA,
+            location: {
+                lat: city.location.latitude,
+                lng: city.location.longitude,
+            },
+            radius: 50000,
             type: PlaceType1.car_dealer,
         },
     };
@@ -157,10 +161,11 @@ async function fetchPlaceIdsFor(
 
 async function performTextSearch(
     client: Client,
-    request: TextSearchRequest
+    request: PlacesNearbyRequest
 ): Promise<string[]> {
-    const response = await client.textSearch(request);
+    const response = await client.placesNearby(request);
     const placeIds = response.data.results
+        .filter((place) => place.business_status !== "CLOSED_PERMANENTLY")
         .map((place) => place.place_id as string)
         .filter((placeId) => placeId);
 
@@ -168,7 +173,7 @@ async function performTextSearch(
         return placeIds;
     }
 
-    const pageRequest: TextSearchRequest = {
+    const pageRequest: PlacesNearbyRequest = {
         params: {
             ...request.params,
             pagetoken: response.data.next_page_token,
