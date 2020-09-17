@@ -8,37 +8,18 @@ import * as ListR from "listr";
 import { DealershipDataPoint } from "../model/dealership-dataset";
 import { City } from "../model/city";
 import { ConfigCommand, DEFAULT_WORKERS } from "../util/config-command";
-import { delay, chunkArray } from "../util/misc";
-
-/**
- * With:
- *  - CityDataset: list of cities, ex: Michigan -> [Detroit, Two, Three, Four]
- *  - DealershipDataPoint:  List of cities with dealers, ex [Detroit: [Bobs, Bill, Janes], Troy: [Doe, Ray, Fa]]
- *
- * 1. With A list of City
- *  -  Check if city already has dealerships
- *      - Skip if it does
- *  - API request to Places search for City
- *      - Get all 'placeids' from the response
- *      - Has next page token?
- *          - Submit again, and parse placeids
- *          - Repeat until no more page token
- *  - We now have a list of place ids
- *  - Move on to next city
- *
- * 2. With a list of PlaceIDs
- *  - Check if we already have data for that place id
- *      - Skip if we do
- *  - API request to get details about place id
- *  - Parse response
- */
+import { delay, chunkArray, uniqueArray } from "../util/misc";
+import { Country } from "../model/region";
 
 const MAX_ERROR_COUNT_TO_ABORT = 15;
+
+const SPLIT_CHUNK_GROUPS_BY = 5;
 
 export async function fetchPlaceIds(
     context: ConfigCommand,
     cityData: City[],
     dealershipData: DealershipDataPoint,
+    minimumPopulation: number,
     {
         maxErrors = MAX_ERROR_COUNT_TO_ABORT,
         force = false,
@@ -47,23 +28,37 @@ export async function fetchPlaceIds(
 ): Promise<DealershipDataPoint> {
     const placesClient = new Client();
 
-    const cities = cityData
-        .filter((city) => city.population >= dealershipData.minimumPopulation)
-        .filter((city) => {
-            if (force) return true;
+    const citiesToSearch = cityData.filter(
+        (city) => city.population >= minimumPopulation
+    );
 
-            const existing = dealershipData.cityIds.find(
-                (id) => id === city.id
-            );
-            return existing === undefined;
-        });
+    const cities = citiesToSearch.filter((city) => {
+        if (force) return true;
+        return (
+            dealershipData.cityIds.find((id) => id === city.id) === undefined
+        );
+    });
 
     context.log(
-        `There are ${cities.length} cities that have a population greater than ${dealershipData.minimumPopulation}`
+        `There are ${cities.length} cities that have a population greater than ${minimumPopulation}`
     );
+
+    const difference = citiesToSearch.length - cities.length;
+    if (difference !== 0) {
+        context.log(
+            `${difference} cities were skipped because data exists, pass '--force' to include them.`
+        );
+    }
+
+    if (cities.length === 0) {
+        return dealershipData;
+    }
+
+    const confirm = await context.confirm("Do you want to continue?", true);
+    if (!confirm) context.exit(0);
+
     context.log("This might take awhile...");
 
-    // Process 5 at a time
     const cityChunks: ListR.ListrTask[] = chunkArray(cities, workers).map(
         (chunk, index) => ({
             title: `City group ${index + 1}`,
@@ -92,7 +87,18 @@ export async function fetchPlaceIds(
         })
     );
 
-    const listr = new ListR(cityChunks);
+    // Split the chunks further if there are too many. So we don't flood the CLI
+    const listrChunks =
+        cityChunks.length < SPLIT_CHUNK_GROUPS_BY
+            ? cityChunks
+            : chunkArray(cityChunks, SPLIT_CHUNK_GROUPS_BY).map(
+                  (chunk, index): ListR.ListrTask => ({
+                      title: `Block ${index + 1}`,
+                      task: () => new ListR(chunk),
+                  })
+              );
+
+    const listr = new ListR(listrChunks);
     const { errorCount, results } = await listr.run({
         errorCount: 0,
         results: [],
@@ -108,16 +114,21 @@ export async function fetchPlaceIds(
         context.error("Didn't recieve any results!");
     }
 
+    context.log(
+        `Found ${results.length} dealerships in ${cities.length} cities.`
+    );
+
     // Merge the existing data set with our new city ids and the new dealership ids
     // We need to make sure there are no duplicates, so we use the `...new Set()` trick
     return {
         ...dealershipData,
-        cityIds: [
-            ...new Set([...dealershipData.cityIds, ...cities.map((x) => x.id)]),
-        ],
-        dealershipIds: [
-            ...new Set([...dealershipData.dealershipIds, ...results].flat()),
-        ],
+        cityIds: uniqueArray([
+            ...dealershipData.cityIds,
+            ...cities.map((x) => x.id),
+        ]),
+        dealershipIds: uniqueArray(
+            [...dealershipData.dealershipIds, ...results].flat()
+        ),
     };
 }
 
@@ -126,15 +137,13 @@ async function fetchPlaceIdsFor(
     client: Client,
     city: City
 ): Promise<string[]> {
-    const key = context.app.googleApiKey;
-    if (!key) {
-        throw new Error("Google Places API key doesn't exist!");
-    }
+    const key = context.apiKey;
 
     const request: TextSearchRequest = {
         params: {
             key,
-            query: encodeURIComponent(city.name),
+            query: encodeURIComponent(`${city.name} ${city.region}`),
+            region: Country.USA,
             type: PlaceType1.car_dealer,
         },
     };

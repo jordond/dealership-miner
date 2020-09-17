@@ -1,5 +1,5 @@
 {
-    "extends": ["oclif", "oclif-typescript"],
+    "extends": ["oclif", "oclif-typescript", "prettier"],
     "rules": {
         "quotes": [2, "double", { "avoidEscape": true }],
         "object-curly-spacing": [2, "always"],
@@ -11,6 +11,7 @@
         "no-negated-condition": "off",
         "unicorn/number-literal-case": "off",
         "space-in-parens": "off",
-        "no-mixed-operators": "off"
+        "no-mixed-operators": "off",
+        "max-params": "off"
     }
 }

@@ -19,6 +19,14 @@ export abstract class ConfigCommand extends Command {
         return this.app.isInitialized && Boolean(this.app.googleApiKey);
     }
 
+    get apiKey(): string {
+        if (!this.app.googleApiKey) {
+            throw new Error("Google Places API key doesn't exist!");
+        }
+
+        return this.app.googleApiKey;
+    }
+
     async run() {
         this.app = await loadConfigOrDefault(this);
         await this.doWork();

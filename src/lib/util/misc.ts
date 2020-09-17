@@ -7,3 +7,7 @@ export function chunkArray(array: any[], size: number) {
         array.slice(i * size, i * size + size)
     );
 }
+
+export function uniqueArray<T>(array: T[]): T[] {
+    return [...new Set(array)];
+}

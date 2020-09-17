@@ -3,7 +3,6 @@ export interface DealershipDataset {
 }
 
 export interface DealershipDataPoint {
-    minimumPopulation: number;
     cityIds: number[];
     dealershipIds: string[];
     dealerships: Dealership[];
@@ -14,9 +13,9 @@ export interface Dealership {
     region: string;
     placeId: string;
     name: string;
-    status: string;
     address: string;
     postal: string;
     phone: string;
+    website: string;
     url: string;
 }

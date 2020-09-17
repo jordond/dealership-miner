@@ -1,5 +1,6 @@
 import { flags } from "@oclif/command";
 import { prompt } from "inquirer";
+import { cli } from "cli-ux";
 
 import { ConfigCommand } from "../lib/util/config-command";
 import { loadCityData, CityDataset } from "../lib/geonames/city-data";
@@ -7,11 +8,13 @@ import {
     loadDealershipData,
     dataPointOrBlank,
     saveDealershipDataPoint,
+    loadRegionDataOrBlank,
 } from "../lib/places/dealership-data";
 import { fetchPlaceIds } from "../lib/places/place-ids";
 import { DealershipDataPoint } from "../lib/model/dealership-dataset";
+import { fetchDealershipDetails } from "../lib/places/place-details";
 
-export const DEFAULT_POPULATION_MIN = 500;
+export const DEFAULT_POPULATION_MIN = 3000;
 
 export default class Fetch extends ConfigCommand {
     static description = "Fetch all the dealerships";
@@ -32,12 +35,18 @@ export default class Fetch extends ConfigCommand {
             char: "w",
             description: "How many concurrent workers to use.",
         }),
+        pretty: flags.boolean({
+            description:
+                "Print the dataset in a human readable format. NOTE: Will increase filesize",
+        }),
         force: flags.boolean({
             char: "f",
             description: "Delete all previous data and start fresh",
             default: false,
         }),
     };
+
+    private regionData?: DealershipDataPoint;
 
     async doWork() {
         const { force } = this.parse(Fetch).flags;
@@ -47,7 +56,7 @@ export default class Fetch extends ConfigCommand {
         const selectedRegion = await this.getRegion(cityData);
         const minPopulation = await this.getMinimumPopulation();
         this.app.previousPopulation = minPopulation;
-        await this.save();
+        await this.save(false);
 
         // Load existing dealership data
         const dealershipData = await loadDealershipData(this, {
@@ -55,27 +64,45 @@ export default class Fetch extends ConfigCommand {
         });
 
         // Check if data exists, and population value is the same
-        const regionData = dataPointOrBlank(
-            dealershipData[selectedRegion],
-            minPopulation
-        );
+        this.regionData = dataPointOrBlank(dealershipData[selectedRegion]);
 
-        if (force || regionData.dealershipIds.length === 0) {
-            await this.getPlaceIds(cityData, selectedRegion, regionData, force);
+        // Check and get the Dealership Place IDs
+        if (force || this.regionData.dealershipIds.length === 0) {
+            await this.getPlaceIds(
+                cityData,
+                selectedRegion,
+                minPopulation,
+                force
+            );
         } else {
             this.log(
-                `Dealership data already exists for ${selectedRegion}, pass '--refresh' to disable this check`
+                `Dealership Place IDs already exists for ${selectedRegion}`
             );
-            const confirm = await this.confirm("Fetch data anyways?");
+            const confirm = await this.confirm(
+                "Would you like to update the existing data?",
+                true
+            );
             if (confirm) {
-                await this.getPlaceIds(
-                    cityData,
-                    selectedRegion,
-                    regionData,
-                    true
-                );
+                await this.getPlaceIds(cityData, selectedRegion, minPopulation);
             }
         }
+
+        // Check and get the Dealership Details
+        if (force || this.regionData.dealerships.length === 0) {
+            await this.getPlaceDetails(selectedRegion, force);
+        } else {
+            this.log(`Dealership data already exists for ${selectedRegion}`);
+            const confirm = await this.confirm(
+                "Would you like to update the existing data?",
+                true
+            );
+            if (confirm) {
+                await this.getPlaceDetails(selectedRegion);
+            }
+        }
+
+        this.log("\nAll done!");
+        this.log("Run 'dealership-miner generate' to generate your reports!");
     }
 
     private async getRegion(cityData: CityDataset): Promise<string> {
@@ -117,22 +144,52 @@ export default class Fetch extends ConfigCommand {
     private async getPlaceIds(
         cityData: CityDataset,
         selectedRegion: string,
-        regionData: DealershipDataPoint,
+        minimumPopulation: number,
         force = false
     ) {
-        const workers = this.parse(Fetch).flags.workers;
+        const { workers, pretty } = this.parse(Fetch).flags;
 
         // Fetch place ids and save
         const geonamesCities = cityData[selectedRegion];
-        const citiesWithIds = await fetchPlaceIds(
+        const regionData = await loadRegionDataOrBlank(this, selectedRegion);
+        const result = await fetchPlaceIds(
             this,
             geonamesCities,
             regionData,
-            { force, workers }
+            minimumPopulation,
+            {
+                force,
+                workers,
+            }
         );
-        await saveDealershipDataPoint(this, selectedRegion, citiesWithIds);
 
-        // TODO: Remove
-        this.log("Just saved the data...");
+        cli.action.start("Saving Place IDs");
+        this.regionData = result;
+        await saveDealershipDataPoint(this, selectedRegion, result, {
+            prettyPrint: pretty,
+        });
+        cli.action.stop();
+    }
+
+    private async getPlaceDetails(selectedRegion: string, force = false) {
+        const { workers, pretty } = this.parse(Fetch).flags;
+
+        const regionData = await loadRegionDataOrBlank(this, selectedRegion);
+        const result = await fetchDealershipDetails(
+            this,
+            regionData,
+            selectedRegion,
+            {
+                force,
+                workers,
+            }
+        );
+
+        cli.action.start("Saving Dealership data");
+        this.regionData = result;
+        await saveDealershipDataPoint(this, selectedRegion, result, {
+            prettyPrint: pretty,
+        });
+        cli.action.stop();
     }
 }

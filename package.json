@@ -68,6 +68,7 @@
         "eslint": "^5.13",
         "eslint-config-oclif": "^3.1",
         "eslint-config-oclif-typescript": "^0.1",
+        "eslint-config-prettier": "^6.11.0",
         "globby": "^10",
         "makensis": "^0.21.2",
         "pkg": "^4.4.9",

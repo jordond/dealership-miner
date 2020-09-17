@@ -6,6 +6,7 @@ import {
     DealershipDataset,
     DealershipDataPoint,
 } from "../model/dealership-dataset";
+import { uniqueArray } from "../util/misc";
 
 const DEALERSHIP_DATA_FILE = "dealership-dataset.json";
 
@@ -32,6 +33,16 @@ export async function loadDealershipData(
     }
 }
 
+export async function loadRegionDataOrBlank(
+    command: ConfigCommand,
+    region: string
+): Promise<DealershipDataPoint> {
+    const result = await loadDealershipData(command, {
+        throwOnNotFound: false,
+    });
+    return dataPointOrBlank(result[region]);
+}
+
 export async function saveDealershipData(
     command: ConfigCommand,
     data: DealershipDataset,
@@ -45,30 +56,38 @@ export async function saveDealershipData(
 export async function saveDealershipDataPoint(
     command: ConfigCommand,
     region: string,
-    dataPoint: DealershipDataPoint,
+    { cityIds, dealershipIds, dealerships }: DealershipDataPoint,
     { prettyPrint = false } = {}
 ) {
     const existing = await loadDealershipData(command, {
         throwOnNotFound: false,
     });
+
+    // Merge the existing data with the new data
+    const data = dataPointOrBlank(existing[region]);
     await saveDealershipData(
         command,
         {
             ...existing,
-            [region]: dataPoint,
+            [region]: {
+                cityIds: uniqueArray([...data.cityIds, ...cityIds]),
+                dealershipIds: uniqueArray([
+                    ...data.dealershipIds,
+                    ...dealershipIds,
+                ]),
+                dealerships: uniqueArray([...data.dealerships, ...dealerships]),
+            },
         },
         prettyPrint
     );
 }
 
 export function dataPointOrBlank(
-    data: DealershipDataPoint | undefined,
-    minimumPopulation: number
+    data: DealershipDataPoint | undefined
 ): DealershipDataPoint {
-    if (data) return { ...data, minimumPopulation };
+    if (data) return { ...data };
 
     return {
-        minimumPopulation,
         cityIds: [],
         dealershipIds: [],
         dealerships: [],
