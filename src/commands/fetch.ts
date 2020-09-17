@@ -15,7 +15,7 @@ import { DealershipDataPoint } from "../lib/model/dealership-dataset";
 import { fetchDealershipDetails } from "../lib/places/place-details";
 import { regionAbrevToName } from "../lib/model/region";
 
-export const DEFAULT_POPULATION_MIN = 3000;
+export const DEFAULT_POPULATION_MIN = 5000;
 
 export default class Fetch extends ConfigCommand {
     static description = "Fetch all the dealerships";

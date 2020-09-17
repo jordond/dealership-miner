@@ -1,6 +1,6 @@
 {
     "name": "dealership-miner",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Jordon de Hoog @jordond",
     "repository": "jordond/dealership-miner",
     "homepage": "https://github.com/jordond/dealership-miner",
@@ -29,7 +29,7 @@
         "bundle": "npm run bundle:pack && npm run bundle:win",
         "bundle:pack": "oclif-dev pack",
         "bundle:win": "oclif-dev pack:win",
-        "publish": "npm run publish:pack && npm run publish:win",
+        "pub": "npm run publish:pack && npm run publish:win",
         "publish:pack": "oclif-dev publish",
         "publish:win": "oclif-dev publish:win",
         "test": "echo NO TESTS",
