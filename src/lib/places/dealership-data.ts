@@ -33,6 +33,16 @@ export async function loadDealershipData(
     }
 }
 
+export function countDealerships(data: DealershipDataset) {
+    const regions = Object.keys(data).length;
+    const dealerships = Object.values(data).reduce(
+        (count, point) => count + point.dealerships.length,
+        0
+    );
+
+    return { regions, dealerships };
+}
+
 export async function loadRegionDataOrBlank(
     command: ConfigCommand,
     region: string

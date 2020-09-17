@@ -13,13 +13,19 @@ import {
 import { fetchPlaceIds } from "../lib/places/place-ids";
 import { DealershipDataPoint } from "../lib/model/dealership-dataset";
 import { fetchDealershipDetails } from "../lib/places/place-details";
+import { regionAbrevToName } from "../lib/model/region";
 
 export const DEFAULT_POPULATION_MIN = 3000;
 
 export default class Fetch extends ConfigCommand {
     static description = "Fetch all the dealerships";
 
-    static examples = ["$ dealership-miner fetch"];
+    static examples = [
+        "$ dealership-miner fetch",
+        "$ dealership-miner fetch --pretty",
+        "$ dealership-miner fetch --workers 8",
+        "$ dealership-miner fetch --force",
+    ];
 
     static flags = {
         help: flags.help({ char: "h" }),
@@ -115,7 +121,10 @@ export default class Fetch extends ConfigCommand {
             type: "list",
             name: "choice",
             message: "Which region?",
-            choices: regions,
+            choices: regions.map((region) => ({
+                name: region,
+                title: regionAbrevToName(region),
+            })),
         });
 
         return choice;

@@ -12,6 +12,7 @@
         "unicorn/number-literal-case": "off",
         "space-in-parens": "off",
         "no-mixed-operators": "off",
-        "max-params": "off"
+        "max-params": "off",
+        "@typescript-eslint/no-unused-vars": "off"
     }
 }

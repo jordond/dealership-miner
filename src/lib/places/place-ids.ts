@@ -32,12 +32,15 @@ export async function fetchPlaceIds(
         (city) => city.population >= minimumPopulation
     );
 
-    const cities = citiesToSearch.filter((city) => {
-        if (force) return true;
-        return (
-            dealershipData.cityIds.find((id) => id === city.id) === undefined
-        );
-    });
+    const cities = citiesToSearch
+        .filter((city) => {
+            if (force) return true;
+            return (
+                dealershipData.cityIds.find((id) => id === city.id) ===
+                undefined
+            );
+        })
+        .sort((left, right) => left.name.localeCompare(right.name));
 
     context.log(
         `There are ${cities.length} cities that have a population greater than ${minimumPopulation}`

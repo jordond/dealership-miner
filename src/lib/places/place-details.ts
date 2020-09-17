@@ -4,6 +4,7 @@ import {
     Place,
 } from "@googlemaps/google-maps-services-js";
 import * as ListR from "listr";
+
 import { Dealership, DealershipDataPoint } from "../model/dealership-dataset";
 import { ConfigCommand, DEFAULT_WORKERS } from "../util/config-command";
 import { chunkArray, uniqueArray } from "../util/misc";
@@ -90,7 +91,9 @@ export async function fetchDealershipDetails(
               );
 
     const listr = new ListR(listrChunks);
-    const { results } = await listr.run({ results: [] });
+    const { results }: { results: Dealership[] } = await listr.run({
+        results: [],
+    });
 
     if (!results) {
         context.error("Didn't recieve any results!");
@@ -103,7 +106,9 @@ export async function fetchDealershipDetails(
     return {
         ...dealershipData,
         dealerships: uniqueArray(
-            [...dealershipData.dealerships, results].flat()
+            [...dealershipData.dealerships, results]
+                .flat()
+                .sort((left, right) => left.city.localeCompare(right.city))
         ),
     };
 }
@@ -151,14 +156,14 @@ function mapPlaceToDealership(
         componentMap[key] ? componentMap[key].long || "" : "";
 
     return {
-        placeId,
-        region,
-        city: long("locality"),
-        postal: long("postal_code"),
         name: details.name as string,
         address: details.formatted_address as string,
+        postal: long("postal_code"),
         phone: details.formatted_phone_number as string,
         website: details.website as string,
         url: details.url as string,
+        city: long("locality"),
+        region,
+        placeId,
     };
 }

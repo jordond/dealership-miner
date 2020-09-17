@@ -47,13 +47,16 @@
         "cli-ux": "^5.5.0",
         "fs-extra": "^9.0.1",
         "inquirer": "^7.3.3",
+        "json2html": "^0.0.8",
+        "json2xls": "^0.1.2",
         "listr": "^0.14.3",
         "mkdirp": "^1.0.4",
         "pull-file": "^1.1.0",
         "pull-stream": "^3.6.14",
         "pull-tobits": "^0.2.1",
         "tslib": "^1",
-        "unzipper": "^0.10.11"
+        "unzipper": "^0.10.11",
+        "xlsx": "^0.16.7"
     },
     "devDependencies": {
         "@oclif/dev-cli": "^1",
@@ -64,6 +67,7 @@
         "@types/node": "^10",
         "@types/pull-stream": "^3.6.2",
         "@types/unzipper": "^0.10.3",
+        "@types/xlsx": "^0.0.36",
         "aws-sdk": "^2.753.0",
         "eslint": "^5.13",
         "eslint-config-oclif": "^3.1",
