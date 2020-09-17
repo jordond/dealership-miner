@@ -19,12 +19,15 @@
 1. You need to obtain a Google Places API Key
     - Follow the steps [here](https://developers.google.com/places/web-service/get-api-key)
 1. Then download the latest installer exe from [here](https://github.com/jordond/dealership-miner/releases)
+    - Download the `.exe` file
+    - Windows will warn you its not "secure", you just need to hit "More Info" then click "Run Anyway"
+    - Keep clicking next to install.
 
 # Usage
 
 ### Step 1
 
-Once it is installed, you need to open up a terminal. - You can do this by hitting the windows key, then typing "cmd"
+Once it is installed, you need to open up PowerShell. - You can do this by hitting the windows key, then typing "powershell"
 
 ### Step 2 - Setup
 
