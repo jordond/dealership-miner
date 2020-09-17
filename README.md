@@ -18,7 +18,7 @@
 
 1. You need to obtain a Google Places API Key
     - Follow the steps [here](https://developers.google.com/places/web-service/get-api-key)
-1. Then download the installer from [here]()
+1. Then download the latest installer exe from [here](https://github.com/jordond/dealership-miner/releases)
 
 # Usage
 
